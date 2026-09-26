@@ -25,51 +25,26 @@ class Lab1App extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Task 1:',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
               task1(),
               const SizedBox(height: 4),
               Divider(),
               const SizedBox(height: 4),
-              Text(
-                'Task 2:',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
               task2(),
-
               const SizedBox(height: 4),
               Divider(),
               const SizedBox(height: 4),
-              Text(
-                'Task 3:',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
               task3(),
               const SizedBox(height: 4),
               Divider(),
               const SizedBox(height: 4),
-              Text(
-                'Task 4:',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
               task4(),
               const SizedBox(height: 4),
               Divider(),
               const SizedBox(height: 4),
-              Text(
-                'Task 5:',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
               task5(),
               const SizedBox(height: 4),
               Divider(),
               const SizedBox(height: 4),
-              Text(
-                'Task 6:',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
               task6(),
             ],
           ),
