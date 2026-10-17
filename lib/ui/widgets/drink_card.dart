@@ -51,7 +51,10 @@ class DrinkCard extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(drink.colorStart), Color(drink.colorEnd)],
+          colors: [
+            drink.color,
+            Color.lerp(drink.color, Colors.white, 0.45)!,
+          ],
         ),
       ),
     );
@@ -59,7 +62,7 @@ class DrinkCard extends StatelessWidget {
 
   /// Обложка: Stack из трёх слоёв.
   Widget _buildCover() {
-    final hasImage = drink.image != null;
+    final hasImage = drink.image.isNotEmpty;
 
     return SizedBox(
       width: 100,
@@ -71,7 +74,7 @@ class DrinkCard extends StatelessWidget {
               ? ClipRRect(
                   borderRadius: BorderRadius.circular(12),
                   child: Image.asset(
-                    drink.image!,
+                    drink.image,
                     width: 100,
                     height: 100,
                     fit: BoxFit.cover,
@@ -84,7 +87,7 @@ class DrinkCard extends StatelessWidget {
           if (!hasImage)
             Center(
               child: Text(
-                drink.title[0].toUpperCase(),
+                drink.title.isEmpty ? '?' : drink.title[0].toUpperCase(),
                 style: const TextStyle(
                   fontSize: 40,
                   fontWeight: FontWeight.bold,
@@ -92,7 +95,7 @@ class DrinkCard extends StatelessWidget {
                 ),
               ),
             ),
-          // 3. Сердечко в правом верхнем углу: нажатие уходит наверх через колбэк
+          // 3. Сердечко в правом верхнем углу
           Positioned(
             top: 4,
             right: 4,

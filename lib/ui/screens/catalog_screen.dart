@@ -1,93 +1,12 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 import '../../domain/entities/drink.dart';
 import '../widgets/drink_card.dart';
 
-const List<Drink> _drinks = [
-  Drink(
-    id: 1,
-    title: 'Эспрессо',
-    subtitle: 'Крепкий и насыщенный, классика итальянской кухни',
-    category: DrinkCategory.coffee,
-    description: 'Готовится под давлением горячей воды из мелкого помола.',
-    image: 'assets/images/espresso.jpg',
-    colorStart: 0xFF5D4037,
-    colorEnd: 0xFF8D6E63,
-  ),
-  Drink(
-    id: 2,
-    title: 'Капучино',
-    subtitle: 'Эспрессо, молоко и плотная молочная пенка',
-    category: DrinkCategory.coffee,
-    image: 'assets/images/cappuccino.jpg',
-    colorStart: 0xFF8D6E63,
-    colorEnd: 0xFFD7CCC8,
-  ),
-  Drink(
-    id: 3,
-    title: 'Латте',
-    subtitle: 'Нежный вкус с большим количеством молока',
-    category: DrinkCategory.coffee,
-    image: 'assets/images/latte.jpg',
-    colorStart: 0xFFA1887F,
-    colorEnd: 0xFFEFEBE9,
-  ),
-  Drink(
-    id: 4,
-    title: 'Зелёный чай сенча с жасмином и лепестками цветов',
-    subtitle: 'Лёгкий травянистый вкус и цветочный аромат',
-    category: DrinkCategory.tea,
-    description: 'Японский зелёный чай, ароматизированный жасмином.',
-    image: 'assets/images/green_tea.jpg',
-    colorStart: 0xFF2E7D32,
-    colorEnd: 0xFF81C784,
-  ),
-  Drink(
-    id: 5,
-    title: 'Чёрный чай Эрл Грей',
-    subtitle: 'С ароматом бергамота, отлично подходит к завтраку',
-    category: DrinkCategory.tea,
-    image: 'assets/images/earl_grey.jpg',
-    colorStart: 0xFF3E2723,
-    colorEnd: 0xFF795548,
-  ),
-  Drink(
-    id: 6,
-    title: 'Матча',
-    subtitle: 'Порошковый зелёный чай из Японии',
-    category: DrinkCategory.tea,
-    image: 'assets/images/matcha.jpg',
-    colorStart: 0xFF558B2F,
-    colorEnd: 0xFFC5E1A5,
-  ),
-  Drink(
-    id: 7,
-    title: 'Американо',
-    subtitle: 'Эспрессо, разбавленный горячей водой',
-    category: DrinkCategory.coffee,
-    image: 'assets/images/americano.jpg',
-    colorStart: 0xFF4E342E,
-    colorEnd: 0xFF6D4C41,
-  ),
-  Drink(
-    id: 8,
-    title: 'Улун молочный',
-    subtitle: 'Сливочный вкус и мягкое послевкусие',
-    category: DrinkCategory.tea,
-    image: 'assets/images/oolong.jpg',
-    colorStart: 0xFF00897B,
-    colorEnd: 0xFF80CBC4,
-  ),
-  Drink(
-    id: 9,
-    title: 'Флэт уайт',
-    subtitle: 'Двойной эспрессо с бархатистым молоком',
-    category: DrinkCategory.coffee,
-    image: 'assets/images/flat_white.jpg',
-    colorStart: 0xFF6D4C41,
-    colorEnd: 0xFFBCAAA4,
-  ),
-];
+const baseUrl = 'https://6ad23b8166cd28aed82dd021.mockapi.io';
 
 class CatalogScreen extends StatefulWidget {
   const CatalogScreen({super.key});
@@ -97,10 +16,111 @@ class CatalogScreen extends StatefulWidget {
 }
 
 class _CatalogScreenState extends State<CatalogScreen> {
-  final Set<int> _likedIds = {};
-  bool _onlyLiked = false;
+  final TextEditingController _titleController = TextEditingController();
+  final Set<String> _likedIds = {};
 
-  void _toggleLike(int id) {
+  List<Drink> _drinks = [];
+  bool _isLoading = true;
+  String? _error;
+  bool _isSending = false;
+  bool _onlyLiked = false;
+  bool _showForm = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDrinks();
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    super.dispose();
+  }
+
+  // ---------- GET ----------
+  Future<void> _loadDrinks() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/drinks'));
+      if (response.statusCode != 200) {
+        throw Exception('Статус ${response.statusCode}');
+      }
+      // utf8.decode(bodyBytes), чтобы русский текст не превратился в кракозябры
+      final list = jsonDecode(utf8.decode(response.bodyBytes)) as List;
+      final drinks = list
+          .map((e) => Drink.fromJson(e as Map<String, dynamic>))
+          .toList();
+      if (!mounted) return;
+      setState(() {
+        _drinks = drinks;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
+  // ---------- POST ----------
+  Future<void> _addDrink() async {
+    final title = _titleController.text.trim();
+    if (title.isEmpty) {
+      _showMessage('Введите название');
+      return;
+    }
+
+    setState(() => _isSending = true);
+    try {
+      // Поля, которые пользователь не вводит, берём по умолчанию
+      final draft = Drink(
+        id: '',
+        title: title,
+        subtitle: 'Добавлено вручную',
+        category: DrinkCategory.coffee,
+        description: '',
+        image: '',
+        color: const Color(0xFF8D6E63),
+      );
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/drinks'),
+        headers: {'Content-Type': 'application/json; charset=UTF-8'},
+        body: jsonEncode(draft.toJson()),
+      );
+      if (response.statusCode != 201) {
+        throw Exception('Статус ${response.statusCode}');
+      }
+      final created = Drink.fromJson(
+        jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>,
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _drinks.insert(0, created); // новый элемент в начало списка
+        _titleController.clear();
+        _isSending = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isSending = false);
+      _showMessage('Не удалось отправить: $e');
+    }
+  }
+
+  void _showMessage(String text) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(text)));
+  }
+
+  // ---------- Лайки и фильтр (локально) ----------
+  void _toggleLike(String id) {
     setState(() {
       if (_likedIds.contains(id)) {
         _likedIds.remove(id);
@@ -116,64 +136,124 @@ class _CatalogScreenState extends State<CatalogScreen> {
     });
   }
 
+  // ---------- UI ----------
   @override
   Widget build(BuildContext context) {
-    // Отфильтрованный список считаем здесь, отдельно не храним
-    final visibleDrinks = _onlyLiked
-        ? _drinks.where((drink) => _likedIds.contains(drink.id)).toList()
-        : _drinks;
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Кофе и чай'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.only(right: 16),
-              child: Text(
-                'В избранном: ${_likedIds.length}',
-                style: const TextStyle(fontSize: 16),
-              ),
-            ),
+          Text(
+            'В избранном: ${_likedIds.length}',
+            style: const TextStyle(fontSize: 16),
+          ),
+          IconButton(
+            icon: Icon(_showForm ? Icons.close : Icons.add),
+            onPressed: () => setState(() => _showForm = !_showForm),
           ),
         ],
       ),
-      body: Column(
+      body: _buildBody(),
+    );
+  }
+
+  Widget _buildBody() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Не удалось загрузить каталог:\n$_error',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              ElevatedButton(
+                onPressed: _loadDrinks,
+                child: const Text('Обновить'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Отфильтрованный список считаем здесь, отдельно не храним
+    final visibleDrinks = _onlyLiked
+        ? _drinks.where((drink) => _likedIds.contains(drink.id)).toList()
+        : _drinks;
+
+    return Column(
+      children: [
+        if (_showForm) _buildForm(),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: _onlyLiked
+                ? FilledButton.icon(
+                    onPressed: _toggleFilter,
+                    icon: const Icon(Icons.favorite),
+                    label: const Text('Только избранные'),
+                  )
+                : OutlinedButton.icon(
+                    onPressed: _toggleFilter,
+                    icon: const Icon(Icons.favorite_border),
+                    label: const Text('Только избранные'),
+                  ),
+          ),
+        ),
+        Expanded(
+          child: visibleDrinks.isEmpty
+              ? const Center(child: Text('Ничего не нашлось'))
+              : ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: visibleDrinks.length,
+                  itemBuilder: (context, index) {
+                    final drink = visibleDrinks[index];
+                    return DrinkCard(
+                      drink: drink,
+                      isLiked: _likedIds.contains(drink.id),
+                      onLikeTap: () => _toggleLike(drink.id),
+                    );
+                  },
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildForm() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      child: Row(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: _onlyLiked
-                  ? FilledButton.icon(
-                      onPressed: _toggleFilter,
-                      icon: const Icon(Icons.favorite),
-                      label: const Text('Только избранные'),
-                    )
-                  : OutlinedButton.icon(
-                      onPressed: _toggleFilter,
-                      icon: const Icon(Icons.favorite_border),
-                      label: const Text('Только избранные'),
-                    ),
+          Expanded(
+            child: TextField(
+              controller: _titleController,
+              decoration: const InputDecoration(
+                labelText: 'Название',
+                border: OutlineInputBorder(),
+              ),
             ),
           ),
-          // ListView внутри Column обязательно оборачиваем в Expanded
-          Expanded(
-            child: visibleDrinks.isEmpty
-                ? const Center(child: Text('Ничего не нашлось'))
-                : ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: visibleDrinks.length,
-                    itemBuilder: (context, index) {
-                      final drink = visibleDrinks[index];
-                      return DrinkCard(
-                        drink: drink,
-                        isLiked: _likedIds.contains(drink.id),
-                        onLikeTap: () => _toggleLike(drink.id),
-                      );
-                    },
-                  ),
+          const SizedBox(width: 12),
+          FilledButton(
+            onPressed: _isSending ? null : _addDrink,
+            child: _isSending
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Text('Отправить'),
           ),
         ],
       ),
