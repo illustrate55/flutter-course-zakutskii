@@ -1,23 +1,38 @@
-enum DrinkCategory { coffee, tea }
-
 class Drink {
-  final int id;
+  final String id;
   final String title;
   final String subtitle;
-  final DrinkCategory category;
-  final String? description;
-  final String? image; // путь к фото в assets, может быть null
-  final int colorStart; // цвета хранятся как int, например 0xFF5D4037
-  final int colorEnd;
+  final String description;
+  final String category;
+  final int coverColor; // Цвет обложки в формате ARGB (например, 0xFF0000FF)
 
   const Drink({
     required this.id,
     required this.title,
     required this.subtitle,
+    required this.description,
     required this.category,
-    this.description,
-    this.image,
-    required this.colorStart,
-    required this.colorEnd,
+    required this.coverColor,
   });
+
+  factory Drink.fromFirestore(Map<String, dynamic> json, String id) {
+    return Drink(
+      id: id,
+      title: json['title'] ?? 'Без названия',
+      subtitle: json['subtitle'] ?? '',
+      description: json['description'] ?? '',
+      category: json['category'] ?? 'Разное',
+      coverColor: json['coverColor'] ?? 0xFF000000, 
+    );
+  }
+
+  Map<String, dynamic> toFirestore() {
+    return {
+      'title': title,
+      'subtitle': subtitle,
+      'description': description,
+      'category': category,
+      'coverColor': coverColor,
+    };
+  }
 }
