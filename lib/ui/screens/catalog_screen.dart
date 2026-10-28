@@ -9,7 +9,6 @@ import '../widgets/drink_card.dart';
 import 'detail_screen.dart';
 import 'add_drink_screen.dart';
 
-// 1. Меняем StatelessWidget на StatefulWidget, чтобы хранить контроллер поиска
 class CatalogScreen extends StatefulWidget {
   const CatalogScreen({super.key});
 
@@ -74,7 +73,6 @@ class _CatalogScreenState extends State<CatalogScreen> {
 
             return Column(
               children: [
-                // 2. ДОБАВИЛИ ПОЛЕ ПОИСКА
                 Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: TextField(
@@ -85,7 +83,6 @@ class _CatalogScreenState extends State<CatalogScreen> {
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      // Кнопка очистки поля (крестик)
                       suffixIcon: _searchController.text.isNotEmpty
                           ? IconButton(
                               icon: const Icon(Icons.clear),
@@ -97,7 +94,6 @@ class _CatalogScreenState extends State<CatalogScreen> {
                           : null,
                     ),
                     onChanged: (value) {
-                      // Отправляем событие поиска в Bloc при каждом нажатии клавиши
                       context.read<CatalogBloc>().add(SearchDrinks(value));
                     },
                   ),
