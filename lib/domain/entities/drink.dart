@@ -1,47 +1,38 @@
-import 'dart:ui' show Color;
-
-enum DrinkCategory { coffee, tea }
-
 class Drink {
-  final String id; // MockAPI выдаёт id строкой: "1", "2", ...
+  final String id;
   final String title;
   final String subtitle;
-  final DrinkCategory category;
   final String description;
-  final String image; // путь к фото в assets, пустая строка = нет фото
-  final Color color;
+  final String category;
+  final int coverColor; // Цвет обложки в формате ARGB (например, 0xFF0000FF)
 
   const Drink({
     required this.id,
     required this.title,
     required this.subtitle,
-    required this.category,
     required this.description,
-    required this.image,
-    required this.color,
+    required this.category,
+    required this.coverColor,
   });
 
-  factory Drink.fromJson(Map<String, dynamic> json) {
+  factory Drink.fromFirestore(Map<String, dynamic> json, String id) {
     return Drink(
-      id: json['id'] as String,
-      title: json['title'] as String,
-      subtitle: json['subtitle'] as String,
-      category: DrinkCategory.values.byName(json['category'] as String),
-      description: json['description'] as String,
-      image: json['image'] as String,
-      color: Color(int.parse('FF${json['color']}', radix: 16)),
+      id: id,
+      title: json['title'] ?? 'Без названия',
+      subtitle: json['subtitle'] ?? '',
+      description: json['description'] ?? '',
+      category: json['category'] ?? 'Разное',
+      coverColor: json['coverColor'] ?? 0xFF000000, 
     );
   }
 
-  /// id не отправляем: его выдаёт сервер.
-  Map<String, dynamic> toJson() {
+  Map<String, dynamic> toFirestore() {
     return {
       'title': title,
       'subtitle': subtitle,
-      'category': category.name,
       'description': description,
-      'image': image,
-      'color': color.toARGB32().toRadixString(16).substring(2).toUpperCase(),
+      'category': category,
+      'coverColor': coverColor,
     };
   }
 }
