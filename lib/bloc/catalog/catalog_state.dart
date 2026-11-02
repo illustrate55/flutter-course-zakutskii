@@ -1,52 +1,51 @@
 import 'package:equatable/equatable.dart';
 import '../../domain/entities/drink.dart';
 
-abstract class CatalogState extends Equatable {
+sealed class CatalogState extends Equatable {
   const CatalogState();
+
   @override
   List<Object?> get props => [];
 }
 
-class CatalogLoading extends CatalogState {}
-
-class CatalogError extends CatalogState {
-  final String message;
-  const CatalogError(this.message);
-  @override
-  List<Object?> get props => [message];
+/// Состояние 1: загрузка
+class CatalogLoading extends CatalogState {
+  const CatalogLoading();
 }
 
+/// Состояние 2: данные
 class CatalogLoaded extends CatalogState {
   final List<Drink> allDrinks;
   final List<String> favoriteIds;
   final bool showOnlyFavorites;
-  final String searchQuery; // <-- ДОБАВИЛИ ПОЛЕ ДЛЯ ПОИСКА
+  final String searchQuery;
 
   const CatalogLoaded({
     required this.allDrinks,
     required this.favoriteIds,
     this.showOnlyFavorites = false,
-    this.searchQuery = '', // <-- По умолчанию пустая строка
+    this.searchQuery = '',
   });
 
-  // Логика фильтрации: сначала по избранному, потом по поиску
+  /// Сначала фильтр по избранному, потом поиск по названию
   List<Drink> get displayedDrinks {
     var filtered = allDrinks;
 
     if (showOnlyFavorites) {
-      filtered = filtered.where((drink) => favoriteIds.contains(drink.id)).toList();
+      filtered =
+          filtered.where((drink) => favoriteIds.contains(drink.id)).toList();
     }
 
     if (searchQuery.isNotEmpty) {
-      filtered = filtered.where((drink) => 
-        drink.title.toLowerCase().contains(searchQuery.toLowerCase())
-      ).toList();
+      final query = searchQuery.toLowerCase();
+      filtered = filtered
+          .where((drink) => drink.title.toLowerCase().contains(query))
+          .toList();
     }
 
     return filtered;
   }
 
-  // Обновили copyWith, чтобы можно было менять searchQuery
   CatalogLoaded copyWith({
     bool? showOnlyFavorites,
     String? searchQuery,
@@ -60,5 +59,16 @@ class CatalogLoaded extends CatalogState {
   }
 
   @override
-  List<Object?> get props => [allDrinks, favoriteIds, showOnlyFavorites, searchQuery];
+  List<Object?> get props =>
+      [allDrinks, favoriteIds, showOnlyFavorites, searchQuery];
+}
+
+/// Состояние 3: ошибка
+class CatalogError extends CatalogState {
+  final String message;
+
+  const CatalogError(this.message);
+
+  @override
+  List<Object?> get props => [message];
 }
