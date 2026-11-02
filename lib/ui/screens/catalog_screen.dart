@@ -6,10 +6,9 @@ import '../../bloc/catalog/catalog_bloc.dart';
 import '../../bloc/catalog/catalog_event.dart';
 import '../../bloc/catalog/catalog_state.dart';
 import '../widgets/drink_card.dart';
-import 'detail_screen.dart';
 import 'add_drink_screen.dart';
+import 'detail_screen.dart';
 
-// 1. Меняем StatelessWidget на StatefulWidget, чтобы хранить контроллер поиска
 class CatalogScreen extends StatefulWidget {
   const CatalogScreen({super.key});
 
@@ -49,97 +48,111 @@ class _CatalogScreenState extends State<CatalogScreen> {
       ),
       body: BlocBuilder<CatalogBloc, CatalogState>(
         builder: (context, state) {
-          if (state is CatalogLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
+          switch (state) {
+            // Загрузка
+            case CatalogLoading():
+              return const Center(child: CircularProgressIndicator());
 
-          if (state is CatalogError) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+            // Ошибка: понятный текст + «Обновить»
+            case CatalogError(:final message):
+              return Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      message,
+                      style: const TextStyle(color: Colors.red),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () {
+                        _searchController.clear();
+                        context.read<CatalogBloc>().add(const LoadCatalog());
+                      },
+                      child: const Text('Обновить'),
+                    ),
+                  ],
+                ),
+              );
+
+            // Данные
+            case CatalogLoaded():
+              final drinks = state.displayedDrinks;
+
+              return Column(
                 children: [
-                  Text(state.message, style: const TextStyle(color: Colors.red)),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () => context.read<CatalogBloc>().add(LoadCatalog()),
-                    child: const Text('Обновить'),
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: TextField(
+                      controller: _searchController,
+                      decoration: InputDecoration(
+                        labelText: 'Поиск по названию',
+                        prefixIcon: const Icon(Icons.search),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        suffixIcon: _searchController.text.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  context
+                                      .read<CatalogBloc>()
+                                      .add(const SearchDrinks(''));
+                                },
+                              )
+                            : null,
+                      ),
+                      onChanged: (value) => context
+                          .read<CatalogBloc>()
+                          .add(SearchDrinks(value)),
+                    ),
+                  ),
+                  SwitchListTile(
+                    title: const Text('Только избранные'),
+                    value: state.showOnlyFavorites,
+                    onChanged: (_) =>
+                        context.read<CatalogBloc>().add(const ToggleFilter()),
+                  ),
+                  Expanded(
+                    child: drinks.isEmpty
+                        ? const Center(
+                            child: Text(
+                              'Ничего не найдено или здесь пока пусто...',
+                            ),
+                          )
+                        : ListView.builder(
+                            padding:
+                                const EdgeInsets.only(top: 8, bottom: 80),
+                            itemCount: drinks.length,
+                            itemBuilder: (context, index) {
+                              final drink = drinks[index];
+                              final isFavorite =
+                                  state.favoriteIds.contains(drink.id);
+
+                              return DrinkCard(
+                                drink: drink,
+                                isLiked: isFavorite,
+                                onLikeTap: () => context
+                                    .read<CatalogBloc>()
+                                    .add(ToggleFavorite(drink.id)),
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          DetailScreen(drink: drink),
+                                    ),
+                                  );
+                                },
+                              );
+                            },
+                          ),
                   ),
                 ],
-              ),
-            );
+              );
           }
-
-          if (state is CatalogLoaded) {
-            final drinks = state.displayedDrinks;
-
-            return Column(
-              children: [
-                // 2. ДОБАВИЛИ ПОЛЕ ПОИСКА
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: TextField(
-                    controller: _searchController,
-                    decoration: InputDecoration(
-                      labelText: 'Поиск по названию',
-                      prefixIcon: const Icon(Icons.search),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      // Кнопка очистки поля (крестик)
-                      suffixIcon: _searchController.text.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(Icons.clear),
-                              onPressed: () {
-                                _searchController.clear();
-                                context.read<CatalogBloc>().add(const SearchDrinks(''));
-                              },
-                            )
-                          : null,
-                    ),
-                    onChanged: (value) {
-                      // Отправляем событие поиска в Bloc при каждом нажатии клавиши
-                      context.read<CatalogBloc>().add(SearchDrinks(value));
-                    },
-                  ),
-                ),
-                SwitchListTile(
-                  title: const Text('Только избранные'),
-                  value: state.showOnlyFavorites,
-                  onChanged: (_) => context.read<CatalogBloc>().add(ToggleFilter()),
-                ),
-                Expanded(
-                  child: drinks.isEmpty
-                      ? const Center(child: Text('Ничего не найдено или здесь пока пусто...'))
-                      : ListView.builder(
-                          padding: const EdgeInsets.only(top: 8, bottom: 80),
-                          itemCount: drinks.length,
-                          itemBuilder: (context, index) {
-                            final drink = drinks[index];
-                            final isFavorite = state.favoriteIds.contains(drink.id);
-
-                            return DrinkCard(
-                              drink: drink,
-                              isLiked: isFavorite,
-                              onLikeTap: () {
-                                context.read<CatalogBloc>().add(ToggleFavorite(drink.id));
-                              },
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => DetailScreen(drink: drink),
-                                  ),
-                                );
-                              },
-                            );
-                          },
-                        ),
-                ),
-              ],
-            );
-          }
-
-          return const Center(child: Text('Нажмите обновить'));
         },
       ),
     );
