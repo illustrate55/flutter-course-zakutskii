@@ -83,7 +83,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
               return Column(
                 children: [
                   Padding(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(16.0),
                     child: TextField(
                       controller: _searchController,
                       decoration: InputDecoration(
@@ -97,52 +97,42 @@ class _CatalogScreenState extends State<CatalogScreen> {
                                 icon: const Icon(Icons.clear),
                                 onPressed: () {
                                   _searchController.clear();
-                                  context
-                                      .read<CatalogBloc>()
-                                      .add(const SearchDrinks(''));
+                                  context.read<CatalogBloc>().add(const SearchDrinks(''));
                                 },
                               )
                             : null,
                       ),
-                      onChanged: (value) => context
-                          .read<CatalogBloc>()
-                          .add(SearchDrinks(value)),
+                      onChanged: (value) {
+                        context.read<CatalogBloc>().add(SearchDrinks(value));
+                      },
                     ),
                   ),
                   SwitchListTile(
                     title: const Text('Только избранные'),
                     value: state.showOnlyFavorites,
-                    onChanged: (_) =>
-                        context.read<CatalogBloc>().add(const ToggleFilter()),
+                    onChanged: (_) => context.read<CatalogBloc>().add(const ToggleFilter()),
                   ),
                   Expanded(
                     child: drinks.isEmpty
                         ? const Center(
-                            child: Text(
-                              'Ничего не найдено или здесь пока пусто...',
-                            ),
+                            child: Text('Ничего не найдено или здесь пока пусто...'),
                           )
                         : ListView.builder(
-                            padding:
-                                const EdgeInsets.only(top: 8, bottom: 80),
+                            padding: const EdgeInsets.only(top: 8, bottom: 80),
                             itemCount: drinks.length,
                             itemBuilder: (context, index) {
                               final drink = drinks[index];
-                              final isFavorite =
-                                  state.favoriteIds.contains(drink.id);
+                              final isFavorite = state.favoriteIds.contains(drink.id);
 
                               return DrinkCard(
                                 drink: drink,
                                 isLiked: isFavorite,
-                                onLikeTap: () => context
-                                    .read<CatalogBloc>()
-                                    .add(ToggleFavorite(drink.id)),
+                                onLikeTap: () => context.read<CatalogBloc>().add(ToggleFavorite(drink.id)),
                                 onTap: () {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) =>
-                                          DetailScreen(drink: drink),
+                                      builder: (context) => DetailScreen(drink: drink),
                                     ),
                                   );
                                 },
@@ -152,6 +142,10 @@ class _CatalogScreenState extends State<CatalogScreen> {
                   ),
                 ],
               );
+            
+            // На всякий случай, если состояние не распознано
+            default:
+              return const Center(child: Text('Нажмите обновить'));
           }
         },
       ),

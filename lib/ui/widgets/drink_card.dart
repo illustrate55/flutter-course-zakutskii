@@ -5,7 +5,7 @@ class DrinkCard extends StatelessWidget {
   final Drink drink;
   final bool isLiked;
   final VoidCallback onLikeTap;
-  final VoidCallback onTap; // Добавили обработчик нажатия на карточку
+  final VoidCallback onTap;
 
   const DrinkCard({
     super.key,
@@ -31,7 +31,7 @@ class DrinkCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12, left: 16, right: 16),
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: InkWell( // Делаем всю карточку кликабельной
+      child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
         child: Padding(
